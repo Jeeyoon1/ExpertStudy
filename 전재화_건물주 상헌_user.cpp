@@ -1,4 +1,4 @@
-#define ROOM_SIZE 777777
+﻿#define ROOM_SIZE 777777
 #define NOTE_SIZE 100000
 #define ROOM_TYPES 3
 
