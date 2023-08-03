@@ -162,7 +162,11 @@ static bool run()
 int main()
 {
     setbuf(stdout, NULL);
-    freopen("robotCleaner4_input.txt", "r", stdin);
+    FILE* file = freopen("robotCleaner4_input.txt", "r", stdin);
+    if (!file) {
+        printf("Error opening the file.\n");
+        return 1;
+    }
     int T;
     scanf("%d", &T);
 
