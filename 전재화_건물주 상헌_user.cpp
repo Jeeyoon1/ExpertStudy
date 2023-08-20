@@ -1,4 +1,4 @@
-﻿#define ROOM_SIZE 777777
+#define ROOM_SIZE 777777
 #define NOTE_SIZE 100000
 #define ROOM_TYPES 3
 
@@ -119,14 +119,53 @@ char* sell_room(char note[NOTE_SIZE], int size)
 
 void _return_room(char note[NOTE_SIZE], char* position, uint size, uint baseBlockNote)
 {
-    node* p = getAddr<node>(note + baseBlockNote);
+    register node* p = getAddr<node>(note + baseBlockNote);
 
-    node* newBlock = new node;
-    newBlock->freeCount = 1;
-    newBlock->roomAddress = position;
-    newBlock->next = p->next;
+    if (p->next == nullptr) {
+        p->next = new node;
+        p->next->freeCount = 1;
+        p->next->roomAddress = position;
+        p->next->next = nullptr;
+        return;
+    }
 
-    p->next = newBlock;
+    while (p->next)
+    {
+        if (position + size < p->next->roomAddress)
+        {
+            node* newBlock = new node;
+            newBlock->freeCount = 1;
+            newBlock->roomAddress = position;
+            newBlock->next = p->next;
+
+            p->next = newBlock;
+            return;
+        }
+
+        p = p->next;
+        if (position + size == p->roomAddress)
+        {
+            p->roomAddress = position;
+            p->freeCount += 1;
+            return;
+        }
+
+        if (position == p->roomAddress + size * p->freeCount)
+        {
+            p->freeCount += 1;
+            if (p->next && p->next->roomAddress == p->roomAddress + size * p->freeCount)
+            {
+                p->freeCount += p->next->freeCount;
+                p->next = p->next->next;
+            }
+            return;
+        }
+    }
+
+    p->next = new node;
+    p->next->freeCount = 1;
+    p->next->roomAddress = position;
+    p->next->next = nullptr;
     return;
 }
 

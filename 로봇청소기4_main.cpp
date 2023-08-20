@@ -1,4 +1,4 @@
-#ifndef _CRT_SECURE_NO_WARNINGS
+﻿#ifndef _CRT_SECURE_NO_WARNINGS
 #define _CRT_SECURE_NO_WARNINGS
 #endif
 
@@ -167,8 +167,7 @@ int main()
         printf("Error opening the file.\n");
         return 1;
     }
-    int T;
-    scanf("%d", &T);
+    int T = 1; //for debug
 
     for (int tc = 1; tc <= T; tc++)
     {
