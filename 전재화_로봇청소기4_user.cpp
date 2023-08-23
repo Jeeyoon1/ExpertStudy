@@ -1,8 +1,6 @@
 ﻿extern void scanFromRobot(int ceilingState[3][3]);
 extern int moveRobot(void);
 extern void turnRobot(int mCommand);
-
-#include <iostream>
 using namespace std;
 
 #define MAX 150
@@ -20,30 +18,79 @@ struct Coor
     int y, x, dir, score;
 };
 
-struct Queue
+struct PriorityQueue
 {
-    static int constexpr Queue_Max = 64 * 64 + 10;
-    Coor arr[Queue_Max];
-    int front, rear;
+    static int constexpr QueueMax = 64 * 64 + 10;
+    Coor arr[QueueMax];
+    int size;
 
-    Queue() : front(0), rear(0)
+    PriorityQueue() : size(0)
     {
 
     }
 
-    bool empty()
+    void swap(Coor& a, Coor& b)
     {
-        return front == rear;
+        Coor temp = a;
+        a = b;
+        b = temp;
     }
 
-    void push(Coor c)
+    bool empty(void)
     {
-        arr[rear++] = c;
+        return size == 0;
+    }
+
+    void push(Coor val)
+    {
+        arr[size++] = val;
+
+        int currIdx = size - 1;
+        int parentIdx;
+        while (currIdx > 0)
+        {
+            parentIdx = (currIdx - 1) / 2;
+            if (arr[currIdx].score < arr[parentIdx].score)
+            {
+                swap(arr[currIdx], arr[parentIdx]);
+                currIdx = parentIdx;
+            }
+            else
+                break;
+        }
     }
 
     Coor pop(void)
     {
-        return arr[front++];
+        Coor popVal = arr[0];
+
+        arr[0] = arr[size - 1];
+        --size;
+
+        int currIdx = 0;
+        int left, right, smallestIdx;
+        while (true)
+        {
+            left = currIdx * 2 + 1;
+            right = currIdx * 2 + 2;
+            smallestIdx = currIdx;
+
+            if (left < size && arr[left].score < arr[smallestIdx].score)
+                smallestIdx = left;
+
+            if (right < size && arr[right].score < arr[smallestIdx].score)
+                smallestIdx = right;
+
+            if (smallestIdx != currIdx)
+            {
+                swap(arr[currIdx], arr[smallestIdx]);
+                currIdx = smallestIdx;
+            }
+            else
+                break;
+        }
+
+        return popVal;
     }
 };
 
@@ -145,22 +192,18 @@ struct Buffer
     {
         ++visitCheck;
         min = SCORE_MAX;
-        Queue q;
-        q.push({ currY, currX, currDir, 0 });
+        PriorityQueue pq;
+        pq.push({ currY, currX, currDir, 0 });
         visit[currY][currX] = visitCheck;
 
-        while (!q.empty())
+        while (!pq.empty())
         {
-            Coor now = q.pop();
+            Coor now = pq.pop();
 
             if (map[now.y][now.x] == IN_BUFFER)
             {
-                if (min > now.score)
-                {
-                    min = now.score;
-                    min_coor = now;
-                }
-                continue;
+                min_coor = now;
+                break;
             }
 
             for (int diff = 0; diff < 4; diff++)
@@ -170,7 +213,7 @@ struct Buffer
                 int nx = now.x + dx[ndir];
                 if (map[ny][nx] != BLOCK && visit[ny][nx] != visitCheck)
                 {
-                    q.push({ ny, nx, ndir, diff == 0 ? now.score + Cost::move : now.score + Cost::turn + Cost::move });
+                    pq.push({ ny, nx, ndir, diff == 0 ? now.score + Cost::move : now.score + Cost::turn + Cost::move });
                     visit[ny][nx] = visitCheck;
                     path[ny][nx] = ndir;
                 } 

@@ -167,7 +167,7 @@ int main()
         printf("Error opening the file.\n");
         return 1;
     }
-    int T = 1; //for debug
+    int T = 10;
 
     for (int tc = 1; tc <= T; tc++)
     {
