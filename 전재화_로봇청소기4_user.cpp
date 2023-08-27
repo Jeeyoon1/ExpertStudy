@@ -1,7 +1,6 @@
-﻿extern void scanFromRobot(int ceilingState[3][3]);
-extern int moveRobot(void);
-extern void turnRobot(int mCommand);
-using namespace std;
+﻿extern void scan(int floorState[3][3]);
+extern int move(void);
+extern void turn(int mCommand);
 
 #define MAX 150
 #define INIT_POS 75
@@ -10,8 +9,8 @@ using namespace std;
 int currDir, currY, currX;
 int dy[4] = { -1,0,+1,0 };
 int dx[4] = { 0,-1,0,+1 };
-enum Dir { up, left, down, right }; //4로 나눈 나머지 연산을 통해 방향 전환 후 진행방향을 알 수 있음
-enum Cost { scan = 20, turn = 15, move = 10 };
+enum Dir { UP, LEFT, DOWN, RIGHT }; //4로 나눈 나머지 연산을 통해 방향 전환 후 진행방향을 알 수 있음
+enum Cost { SCAN = 20, TURN = 15, MOVE = 10 };
 
 struct Coor
 {
@@ -94,27 +93,27 @@ struct PriorityQueue
     }
 };
 
-struct Buffer
+struct Robot
 {
     enum status
     {
-        NOT_BLOCK = 0, BLOCK, IN_BUFFER
+        NOT_BLOCK = 0, BLOCK, NEED_CLEANING, NEED_SCAN
     };
     
-    status map[MAX][MAX];
+    int map[MAX][MAX];
     int visit[MAX][MAX], visitCheck;
     bool cleaned[MAX][MAX];
     int path[MAX][MAX];
     int min, size;
     Coor min_coor;
 
-    Buffer() : min(SCORE_MAX), size(0)
+    Robot() : min(SCORE_MAX), size(0)
     {
         for (int i = 0; i < MAX; i++)
         {
             for (int j = 0; j < MAX; j++)
             {
-                map[i][j] = BLOCK;
+                map[i][j] = NEED_SCAN;
                 visit[i][j] = 0;
                 cleaned[i][j] = false;
             }
@@ -130,14 +129,24 @@ struct Buffer
         return min_coor;
     }
 
-    void mapping(status floorState, status& map, bool cleaned)
+    bool needScan(void)
     {
-        if (map == status::IN_BUFFER)
+        for (int dir = 0; dir < 4; dir++)
+        {
+            if (map[currY + dy[dir]][currX + dx[dir]] == NEED_SCAN)
+                return true;
+        }
+        return false;
+    }
+
+    inline void mapping(int floorState, int& map, bool cleaned)
+    {
+        if (map == status::NEED_CLEANING)
             return;
         map = floorState;
         if (map == status::NOT_BLOCK && cleaned == false)
         {
-            map = status::IN_BUFFER;
+            map = status::NEED_CLEANING;
             ++size;
         }
     }
@@ -146,43 +155,43 @@ struct Buffer
     {
         int baseY = currY - 1;
         int baseX = currX - 1;
-        if (currDir == Dir::up)
+        if (currDir == Dir::UP)
         {
             for (int y = 0, sy = 0; y <= 2; y++, sy++)
             {
                 for (int x = 0, sx = 0; x <= 2; x++, sx++)
                 {
-                    mapping((status)floorState[y][x], map[baseY + sy][baseX + sx], cleaned[baseY + sy][baseX + sx]);
+                    mapping(floorState[y][x], map[baseY + sy][baseX + sx], cleaned[baseY + sy][baseX + sx]);
                 }
             }
         }
-        else if (currDir == Dir::left)
+        else if (currDir == Dir::LEFT)
         {
             for (int y = 0, sx = 0; y <= 2; y++, sx++)
             {
                 for (int x = 0, sy = 2; x <= 2; x++, sy--)
                 {
-                    mapping((status)floorState[y][x], map[baseY + sy][baseX + sx], cleaned[baseY + sy][baseX + sx]);
+                    mapping(floorState[y][x], map[baseY + sy][baseX + sx], cleaned[baseY + sy][baseX + sx]);
                 }
             }
         }
-        else if (currDir == Dir::down)
+        else if (currDir == Dir::DOWN)
         {
             for (int y = 0, sy = 2; y <= 2; y++, sy--)
             {
                 for (int x = 0, sx = 2; x <= 2; x++, sx--)
                 {
-                    mapping((status)floorState[y][x], map[baseY + sy][baseX + sx], cleaned[baseY + sy][baseX + sx]);
+                    mapping(floorState[y][x], map[baseY + sy][baseX + sx], cleaned[baseY + sy][baseX + sx]);
                 }
             }
         }
-        else if (currDir == Dir::right)
+        else if (currDir == Dir::RIGHT)
         {
             for (int y = 0, sx = 2; y <= 2; y++, sx--)
             {
                 for (int x = 0, sy = 0; x <= 2; x++, sy++)
                 {
-                    mapping((status)floorState[y][x], map[baseY + sy][baseX + sx], cleaned[baseY + sy][baseX + sx]);
+                    mapping(floorState[y][x], map[baseY + sy][baseX + sx], cleaned[baseY + sy][baseX + sx]);
                 }
             }
         }
@@ -200,7 +209,7 @@ struct Buffer
         {
             Coor now = pq.pop();
 
-            if (map[now.y][now.x] == IN_BUFFER)
+            if (map[now.y][now.x] == NEED_CLEANING)
             {
                 min_coor = now;
                 break;
@@ -211,9 +220,9 @@ struct Buffer
                 int ndir = (now.dir + diff) % 4;
                 int ny = now.y + dy[ndir];
                 int nx = now.x + dx[ndir];
-                if (map[ny][nx] != BLOCK && visit[ny][nx] != visitCheck)
+                if (map[ny][nx] != BLOCK && map[ny][nx] != NEED_SCAN && visit[ny][nx] != visitCheck)
                 {
-                    pq.push({ ny, nx, ndir, diff == 0 ? now.score + Cost::move : now.score + Cost::turn + Cost::move });
+                    pq.push({ ny, nx, ndir, diff == 0 ? now.score + Cost::MOVE : now.score + Cost::TURN + Cost::MOVE });
                     visit[ny][nx] = visitCheck;
                     path[ny][nx] = ndir;
                 } 
@@ -225,10 +234,10 @@ struct Buffer
     {
         if (now.y == currY && now.x == currX)
         {
-            int diffDir = (path[toGo.y][toGo.x] - path[now.y][now.x] + 4) % 4;
+            int diffDir = (path[toGo.y][toGo.x] - currDir + 4) % 4;
             if (diffDir != 0)
-                turnRobot(diffDir);
-            moveRobot();
+                turn(diffDir);
+            move();
             return;
         }
         int opDir = (path[now.y][now.x] + 2) % 4;
@@ -239,21 +248,8 @@ struct Buffer
 
         int diffDir = (path[toGo.y][toGo.x] - path[now.y][now.x] + 4) % 4;
         if(diffDir != 0)
-            turnRobot(diffDir);
-        moveRobot();
-    }
-
-    void print(void)
-    {
-        for (int i = 0; i < MAX; i++)
-        {
-            for (int j = 0; j < MAX; j++)
-            {
-                cout << map[i][j];
-            }
-            cout << endl;
-        }
-        cout << endl;
+            turn(diffDir);
+        move();
     }
 };
 
@@ -264,32 +260,32 @@ void init(void)
 
 void cleanHouse(void)
 {
-    currY = INIT_POS, currX = INIT_POS, currDir = Dir::up;
+    currY = INIT_POS, currX = INIT_POS, currDir = Dir::UP;
     int floorState[3][3];
-    Buffer buffer;
+    Robot robot;
     Coor dest;
     
     do 
     {
-        scanFromRobot(floorState);
-        buffer.mapUpdate(floorState);
-        buffer.update();
+        if (robot.needScan() == true)
+        {
+            scan(floorState);
+            robot.mapUpdate(floorState);
+        }
+        robot.update();
 
-        if (buffer.size == 0)
+        if (robot.size == 0)
             break;
 
-        dest = buffer.pop();
+        dest = robot.pop();
         //path 저장된거에 따라 move 및 turn호출
-        int opDir = (buffer.path[dest.y][dest.x] + 2) % 4;
+        int opDir = (robot.path[dest.y][dest.x] + 2) % 4;
         int ny = dest.y + dy[opDir];
         int nx = dest.x + dx[opDir];
-        buffer.FollowPath({ny, nx}, dest);
+        robot.FollowPath({ny, nx}, dest);
         //currDir, currY, currX 갱신
-        currDir = buffer.path[dest.y][dest.x];
+        currDir = robot.path[dest.y][dest.x];
         currY = dest.y;
         currX = dest.x;
-
-        //buffer.print(); for debug
-
     } while (true);
 }

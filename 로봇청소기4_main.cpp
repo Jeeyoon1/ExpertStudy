@@ -3,157 +3,125 @@
 #endif
 
 #include <stdio.h>
-#include <cstring>
-#include <random>
+#include <string.h>
 
 extern void init(void);
-extern void cleanHouse(void);
+extern void cleanHouse();
 
-#define MAX_N (64)
-#define MAX_SUB_TASK (10)
+static unsigned long long seed = 5;
 
-static int mLimitMoveCnt = 0;
-static int houseInfo[MAX_N][MAX_N];
-static int isCleaned[MAX_N][MAX_N];
-static int robotInfo[3] = { 0, }; // [0] : y, [1] : x, [2] : direction
-static int score = 0;
-
-static int dy[4] = { -1, 0, 1, 0 };
-static int dx[4] = { 0, -1, 0, 1 };
-
-static bool ok = false;
-
-void scanFromRobot(int floorState[3][3])
+static int psuedo_rand(void)
 {
-    int robot_y = robotInfo[0];
-    int robot_x = robotInfo[1];
-    int direction = robotInfo[2];
-
-    if (direction == 0) // UP
-    {
-        for (int y = robot_y - 1, sy = 0; y <= robot_y + 1; y++, sy++)
-        {
-            for (int x = robot_x - 1, sx = 0; x <= robot_x + 1; x++, sx++)
-            {
-                floorState[sy][sx] = houseInfo[y][x];
-            }
-        }
-    }
-    if (direction == 1) // LEFT
-    {
-        for (int y = robot_y - 1, sx = 2; y <= robot_y + 1; y++, sx--)
-        {
-            for (int x = robot_x - 1, sy = 0; x <= robot_x + 1; x++, sy++)
-            {
-                floorState[sy][sx] = houseInfo[y][x];
-            }
-        }
-    }
-    else if (direction == 2) // DOWN
-    {
-        for (int y = robot_y - 1, sy = 2; y <= robot_y + 1; y++, sy--)
-        {
-            for (int x = robot_x - 1, sx = 2; x <= robot_x + 1; x++, sx--)
-            {
-                floorState[sy][sx] = houseInfo[y][x];
-            }
-        }
-    }
-    else if (direction == 3) // RIGHT
-    {
-        for (int y = robot_y - 1, sx = 0; y <= robot_y + 1; y++, sx++)
-        {
-            for (int x = robot_x - 1, sy = 2; x <= robot_x + 1; x++, sy--)
-            {
-                floorState[sy][sx] = houseInfo[y][x];
-            }
-        }
-    }
-
-    score += 20;
+    seed = seed * 25214903917ULL + 11ULL;
+    return (seed >> 16) & 0x3fffffff;
 }
 
-void turnRobot(int mCommand)
+/* These constant variables will NOT be changed */
+static const int N = 64;
+static const int TC_COUNT = 10;
+static const int SUB_TASK_COUNT = 10;
+static const int MOVE_COST = 10;
+static const int TURN_COST = 15;
+static const int SCAN_COST = 20;
+
+static const long long PENALTY = 1000000000;
+
+static const int dy[4] = { -1,    0, 1, 0 };
+static const int dx[4] = { 0, -1, 0, 1 };
+
+static int houseInfo[N][N];
+static int isCleaned[N][N];
+
+static int robotY;
+static int robotX;
+static int robotDir;
+
+static long long SCORE = 0;
+
+void scan(int floorState[3][3])
 {
-    score += 15;
+    SCORE += SCAN_COST;
 
-    if (mCommand <= 0 || mCommand >= 4)
-        return;
-
-    int next_dir = (robotInfo[2] + mCommand) % 4;
-    robotInfo[2] = next_dir;
+    switch (robotDir)
+    {
+    case 0: // UP
+        for (int y = robotY - 1, sy = 0; y <= robotY + 1; ++y, ++sy)
+            for (int x = robotX - 1, sx = 0; x <= robotX + 1; ++x, ++sx)
+                floorState[sy][sx] = houseInfo[y][x];
+        break;
+    case 1: // LEFT
+        for (int y = robotY - 1, sx = 2; y <= robotY + 1; ++y, --sx)
+            for (int x = robotX - 1, sy = 0; x <= robotX + 1; ++x, ++sy)
+                floorState[sy][sx] = houseInfo[y][x];
+        break;
+    case 2: // DOWN
+        for (int y = robotY - 1, sy = 2; y <= robotY + 1; ++y, --sy)
+            for (int x = robotX - 1, sx = 2; x <= robotX + 1; ++x, --sx)
+                floorState[sy][sx] = houseInfo[y][x];
+        break;
+    case 3: // RIGHT
+        for (int y = robotY - 1, sx = 0; y <= robotY + 1; ++y, ++sx)
+            for (int x = robotX - 1, sy = 2; x <= robotX + 1; ++x, --sy)
+                floorState[sy][sx] = houseInfo[y][x];
+        break;
+    }
 }
 
-int moveRobot(void)
+int move(void)
 {
-    score += 10;
-    
-    int now_dir = robotInfo[2];
-    int sy = robotInfo[0] + dy[now_dir];
-    int sx = robotInfo[1] + dx[now_dir];
+    SCORE += MOVE_COST;
 
-    if (houseInfo[sy][sx] == 1)
-    {
+    int next_y = robotY + dy[robotDir];
+    int next_x = robotX + dx[robotDir];
+
+    if (houseInfo[next_y][next_x] == 1)
         return 0;
-    }
-    else
-    {
-        robotInfo[0] = sy;
-        robotInfo[1] = sx;
-        isCleaned[sy][sx] = 1;
-    }
+
+    robotY = next_y;
+    robotX = next_x;
+    isCleaned[robotY][robotX] = 1;
 
     return 1;
 }
 
-int getRandomNumber() 
+void turn(int mCommand)
 {
-    std::random_device rd;  // 시드 값을 생성하는 랜덤 장치
-    std::mt19937 gen(rd()); // Mersenne Twister 알고리즘을 사용하는 생성기
-    std::uniform_int_distribution<> dis; // 기본적으로 int의 범위 내에서 균등 분포 생성
+    SCORE += TURN_COST;
 
-    return dis(gen); // 랜덤값 반환
+    if (mCommand <= 0 || mCommand >= 4)
+        return;
+
+    robotDir = (robotDir + mCommand) % 4;
 }
 
 static bool run()
 {
     init();
 
-    for (int y = 0; y < MAX_N; y++)
-    {
-        for (int x = 0; x < MAX_N; x++)
-        {
+    for (int y = 0; y < N; ++y)
+        for (int x = 0; x < N; ++x)
             scanf("%d", &houseInfo[y][x]);
-            isCleaned[y][x] = 0;
-        }
-    }
 
-    for (int i = 0; i < MAX_SUB_TASK; i++)
+    for (int i = 0; i < SUB_TASK_COUNT; ++i)
     {
+        do
+        {
+            robotY = psuedo_rand() % (N - 2) + 1;
+            robotX = psuedo_rand() % (N - 2) + 1;
+            robotDir = psuedo_rand() % 4;
+        } while (houseInfo[robotY][robotX] == 1);
+
         memset(isCleaned, 0, sizeof(isCleaned));
 
-        do 
-        {
-			robotInfo[0] = getRandomNumber() % (MAX_N - 2);
-			robotInfo[1] = getRandomNumber() % (MAX_N - 2);
-			robotInfo[2] = getRandomNumber() % 4;
-		} while (houseInfo[robotInfo[0]][robotInfo[1]] == 1);
-
-        isCleaned[robotInfo[0]][robotInfo[1]] = 1;
+        isCleaned[robotY][robotX] = 1;
 
         cleanHouse();
 
-        for (int y = 0; y < MAX_N; y++)
-        {
-            for (int x = 0; x < MAX_N; x++)
-            {
-                if (houseInfo[y][x] == 1)
-                    continue;
-
-                if (isCleaned[y][x] == 0)
+        for (int y = 1; y < N - 1; ++y)
+            for (int x = 1; x < N - 1; ++x)
+                if (houseInfo[y][x] == 0 && isCleaned[y][x] == 0) {
                     return false;
-            }
-        }
+                }
     }
 
     return true;
@@ -162,21 +130,19 @@ static bool run()
 int main()
 {
     setbuf(stdout, NULL);
-    FILE* file = freopen("robotCleaner4_input.txt", "r", stdin);
-    if (!file) {
-        printf("Error opening the file.\n");
-        return 1;
-    }
-    int T = 10;
+    freopen("input.txt", "r", stdin);
 
-    for (int tc = 1; tc <= T; tc++)
-    {
+    for (int tc = 1; tc <= TC_COUNT; ++tc)
         if (run() == false)
         {
-            printf("Fail\n");
-            exit(0);
+            printf("SCORE: %lld\n", PENALTY);
+            return 0;
         }
-    }
-    printf("Score : %d\n", score);
+
+    printf("SCORE: %lld\n", SCORE);
+
+    if (SCORE > 6320000) puts("FAIL");
+    else puts("PASS");
+
     return 0;
 }
