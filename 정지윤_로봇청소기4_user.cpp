@@ -58,8 +58,8 @@ void init(void)
 
 }
 void save_map() { //mapp를 map에 저장!
-	int x=0;
-	int y=0;
+	int x = 0;
+	int y = 0;
 	int flag = 0;
 	for (int i = 0; i < MAX_UNIT; i++) {
 		for (int j = 0; j < MAX_UNIT; j++) {
@@ -73,29 +73,51 @@ void save_map() { //mapp를 map에 저장!
 		if (flag == 1)
 			break;
 	}
+	while (1) { // y를 오른쪽으로 땡기기
+		int flag = 0;
+		for (int i = 0; i < MAX_UNIT; i++) {
+			if (mapp[y - 1][i] != -1) {
+				y = y - 1;
+				flag = 1;
+				break;
+			}
+		}
+		if (flag == 0) {
+			break;
+		}
+	}
+	while (1) { // x를 위쪽으로 땡기기
+		int flag = 0;
+		for (int i = 0; i < MAX_UNIT; i++) {
+			if (mapp[i][x-1] != -1) {
+				x = x-1;
+				flag = 1;
+				break;
+			}
+		}
+		if (flag == 0) {
+			break;
+		}
+	}
+
 	int i1, i2, j1, j2;
 	for (int i = 0; i < MAX_N; i++) {
 		for (int j = 0; j < MAX_N; j++) {
 			map[i][j][0] = mapp[i + y][j + x];
 		}
 	}
-	for (i1 = 0, j2 = MAX_N; i1 < MAX_N; i1++, j2--) {
+	for (i1 = 0, j2 = MAX_N - 1; i1 < MAX_N; i1++, j2--) {
 		for (j1 = 0, i2 = 0; j1 < MAX_N; j1++, i2++) {
 			map[i1][j1][1] = map[i2][j2][0];
 		}
 	}
-	for (i1 = 0,j2 = MAX_N-1; i1 < MAX_N; i1++, j2--) {
-		for (j1 = 0, i2 = 0; j1 < MAX_N; j1++, i2++) {
-			map[i1][j1][1] = map[i2][j2][0];
-		}
-	}
-	for (i1 = 0, i2 = MAX_N-1; i1 < MAX_N; i1++, i2--) {
-		for (j1 = 0, j2 = MAX_N-1; j1 < MAX_N; j1++, j2--) {
+	for (i1 = 0, i2 = MAX_N - 1; i1 < MAX_N; i1++, i2--) {
+		for (j1 = 0, j2 = MAX_N - 1; j1 < MAX_N; j1++, j2--) {
 			map[i1][j1][2] = map[i2][j2][0];
 		}
 	}
 	for (i1 = 0, j2 = 0; i1 < MAX_N; i1++, j2++) {
-		for (j1 = 0, i2 = MAX_N-1; j1 < MAX_N; j1++, i2--) {
+		for (j1 = 0, i2 = MAX_N - 1; j1 < MAX_N; j1++, i2--) {
 			map[i1][j1][3] = map[i2][j2][0];
 		}
 	}
@@ -325,11 +347,11 @@ bool check_map() { // 후보군 뒤져가면서 map 뒤져보고 완벽하게 �
 			}
 		}
 		if (mc_pointer[0] == 1) {
-			//printf("mc_pointer[0] is %d\n", mc_pointer[0]);
+			///printf("mc_pointer[0] is %d\n", mc_pointer[0]);
 			fill_mapp_by_map(MC[0][mc_pointer[1]].x, MC[0][mc_pointer[1]].y, MC[0][mc_pointer[1]].dir);
 			return true;
 		}
-		//printf("mc_pointer[0] is %d\n", mc_pointer[0]);
+	//	printf("mc_pointer[0] is %d\n", mc_pointer[0]);
 		return false;
 	}
 	int mp = mc_pointer[1];
@@ -357,20 +379,20 @@ bool check_map() { // 후보군 뒤져가면서 map 뒤져보고 완벽하게 �
 			MC[mc_pointer[0]][mc_pointer[1]].x = j1;
 			MC[mc_pointer[0]][mc_pointer[1]].y = i1;
 			MC[mc_pointer[0]++][mc_pointer[1]].dir = dir;
-			//if (mc_pointer[0] == 1) {
+			if (mc_pointer[0] == 1) {
 			//	printf("push %d %d %d\n", MC[0][mc_pointer[1]].x, MC[0][mc_pointer[1]].y, MC[0][mc_pointer[1]].dir);
-		//	}
+			}
 		}
 	}
 	if (mc_pointer[0] == 0) {
 		printf(",.,,?\n");
 	}
 	if (mc_pointer[0] == 1) {
-	//	printf("mc_pointer[0] is %d %d %d\n", MC[0][mc_pointer[1]].x, MC[0][mc_pointer[1]].y, MC[0][mc_pointer[1]].dir);
+		//	printf("mc_pointer[0] is %d %d %d\n", MC[0][mc_pointer[1]].x, MC[0][mc_pointer[1]].y, MC[0][mc_pointer[1]].dir);
 		fill_mapp_by_map(MC[0][mc_pointer[1]].x, MC[0][mc_pointer[1]].y, MC[0][mc_pointer[1]].dir);
 		return true;
 	}
-	//printf("mc_pointer[0] is %d\n", mc_pointer[0]);
+//printf("mc_pointer[0] is %d\n", mc_pointer[0]);
 	return false;
 }
 void wall_tracking() {
@@ -385,7 +407,7 @@ void wall_tracking() {
 				is_find = 1;
 			}
 		}
-		else if(is_find == 0) {
+		else if (is_find == 0) {
 			coo++;
 		}
 		if (flag == 1 && start_x == x && start_y == y) {
@@ -428,7 +450,7 @@ void wall_tracking() {
 				turn(1);
 				dir = (dir + 1) % 4;
 			}
-			else if(visit[y+move_y[(dir+2)%4]][x+move_x[(dir+2)%4]] == 0) { // 뒤가 막혀있다면
+			else if (visit[y + move_y[(dir + 2) % 4]][x + move_x[(dir + 2) % 4]] == 0) { // 뒤가 막혀있다면
 				turn(2);
 				dir = (dir + 2) % 4;
 			}
@@ -446,7 +468,7 @@ void cleanHouse(void)
 	is_find = 0;
 	mc_pointer[0] = -1;
 	mc_pointer[1] = -1;
-	if (count % 10 == 0){
+	if (count % 10 == 0) {
 		is_find = 1;
 	}
 	for (int i = 0; i < MAX_UNIT; i++) {
@@ -478,13 +500,13 @@ void cleanHouse(void)
 		}
 	}
 	while (1) {
-	if (!go_nearest_uncleaned()) {
-		if (count % 10 == 0) {
-			save_map();
+		if (!go_nearest_uncleaned()) {
+			if (count % 10 == 0) {
+				save_map();
+			}
+			count++;
+			return;
 		}
-		count++;
-		return;
-	}
 #ifdef DEBUG
 		print_map();
 #endif
