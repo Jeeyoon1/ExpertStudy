@@ -1,7 +1,9 @@
 ﻿extern void scan(int floorState[3][3]);
 extern int move(void);
 extern void turn(int mCommand);
+
 #include <iostream>
+extern bool debugFlag;
 
 /////////////// Data Structure //////////////////
 struct Coor
@@ -144,7 +146,7 @@ struct PriorityQueue
 #define INIT_POS 75
 #define VALID true
 #define INVALID false
-#define THRESHOLD 50
+#define THRESHOLD 5
 
 enum Dir { UP, LEFT, DOWN, RIGHT }; //4로 나눈 나머지 연산을 통해 방향 전환 후 진행방향을 알 수 있음
 enum Cost { SCAN = 20, TURN = 15, MOVE = 10 };
@@ -193,40 +195,6 @@ void initCompMap(void)
         }
     }
     cleaned[INIT_POS][INIT_POS] = true;
-
-
-    for (int y = 0, sy = 0; y < MAX; ++y, ++sy)
-        for (int x = 0, sx = 0; x < MAX; ++x, ++sx)
-            rotateMap[UP][sy][sx] = map[y][x];
-
-    for (int y = 0, sx = MAX - 1; y < MAX; ++y, --sx)
-        for (int x = 0, sy = 0; x < MAX; ++x, ++sy)
-            rotateMap[LEFT][sy][sx] = map[y][x];
-
-    for (int y = 0, sy = MAX - 1; y < MAX; ++y, --sy)
-        for (int x = 0, sx = MAX - 1; x < MAX; ++x, --sx)
-            rotateMap[DOWN][sy][sx] = map[y][x];
-
-    for (int y = 0, sx = 0; y < MAX; ++y, ++sx)
-        for (int x = 0, sy = MAX - 1; x < MAX; ++x, --sy)
-            rotateMap[RIGHT][sy][sx] = map[y][x];
-
-    //for (int dir = 0; dir < 4; dir++)
-    //{
-    //    for (int i = 0; i < MAX; i++)
-    //    {
-    //        for (int j = 0; j < MAX; j++)
-    //        {
-    //            if (rotateMap[dir][i][j] == NEED_SCAN)
-    //                std::cout << " ";
-    //            else
-    //                std::cout << rotateMap[dir][i][j];
-    //        }
-    //        std::cout << std::endl;
-    //    }
-    //}
-
-    //int a = 10;
 }
 
 Coor pop(int src[][MAX])
@@ -355,9 +323,8 @@ bool isValid(Queue<Diff> q, int y, int x, int dir)
 
 void copyMap(int src[][MAX], int pivotY, int pivotX)
 {
-    int dy = currY - pivotY;
-    int dx = currX - pivotX;
-    bool temp[MAX][MAX];
+    int dy = Y - pivotY;
+    int dx = X - pivotX;
     for (int y = 0; y < MAX; y++)
     {
         for (int x = 0; x < MAX; x++)
@@ -365,15 +332,8 @@ void copyMap(int src[][MAX], int pivotY, int pivotX)
             if (src[y][x] == NEED_SCAN || isValidRange(y + dy, x + dx) == false)
                 continue;
             compMap[y + dy][x + dx] = src[y][x];
-            temp[y + dy][x + dx] = cleaned[y][x];
-        }
-    }
-
-    for (int y = 0; y < MAX; y++)
-    {
-        for (int x = 0; x < MAX; x++)
-        {
-            cleaned[y][x] = temp[y][x];
+            if (compMap[y + dy][x + dx] == NOT_BLOCK && cleaned[y + dy][x + dx] == false)
+                ++size;
         }
     }
 }
@@ -388,8 +348,8 @@ bool detectStatus(bool isFirst)
     //compMap을 BFS로 돌면서 4방향 diff Queue에 담기
     ++visitCheck;
     Queue<Diff> diffQ;
-    diffQ.push({ 0, 0, compMap[currY][currX] });
-    visit[currY][currX] = visitCheck;
+    diffQ.push({ 0, 0, compMap[Y][X] });
+    visit[Y][X] = visitCheck;
 
     while (!diffQ.empty())
     {
@@ -414,18 +374,44 @@ bool detectStatus(bool isFirst)
     {
         candidateQ.init();
         cddQSize = 0;
-        for (int i = 0; i < MAX; i++)
+        for (int dir = 0; dir < 4; dir++)
         {
-            for (int j = 0; j < MAX; j++)
+            for (int i = 0; i < MAX; i++)
             {
-                for (int dir = 0; dir < 4; dir++)
+                for (int j = 0; j < MAX; j++)
                 {
-                    if (isValid(diffQ, i, j, dir))
+                    if (rotateMap[dir][i][j] != NEED_SCAN && isValid(diffQ, i, j, dir))
                     {
                         candidateQ.push({ i,j,dir,VALID });
                         ++cddQSize;
                     }
+
                 }
+            }
+        }
+
+        if (debugFlag)
+        {
+            for (int i = 81 - 10; i < 81 + 10; i++)
+            {
+                for (int j = 70 - 10; j < 70 + 10; j++)
+                {
+                    if (rotateMap[2][i][j] == NEED_SCAN)
+                        std::cout << " ";
+                    std::cout << rotateMap[2][i][j];
+                }
+                std::cout << std::endl;
+            }
+
+            for (int i = 73 - 10; i < 73 + 10; i++)
+            {
+                for (int j = 76 - 10; j < 76 + 10; j++)
+                {
+                    if (compMap[i][j] == NEED_SCAN)
+                        std::cout << " ";
+                    std::cout << compMap[i][j];
+                }
+                std::cout << std::endl;
             }
         }
     }
@@ -455,8 +441,7 @@ bool detectStatus(bool isFirst)
                 status = now;
                 break;
             }
-        }
-
+        }        
         copyMap(rotateMap[status.dir], status.y, status.x);
         return true;
     }
@@ -496,6 +481,23 @@ void makeMap(void)
         currY = dest.y;
         currX = dest.x;
     } while (true);
+
+    //make rotateMap
+    for (int y = 0, sy = 0; y < MAX; ++y, ++sy)
+        for (int x = 0, sx = 0; x < MAX; ++x, ++sx)
+            rotateMap[UP][sy][sx] = map[y][x];
+
+    for (int y = 0, sx = MAX - 1; y < MAX; ++y, --sx)
+        for (int x = 0, sy = 0; x < MAX; ++x, ++sy)
+            rotateMap[LEFT][sy][sx] = map[y][x];
+
+    for (int y = 0, sy = MAX - 1; y < MAX; ++y, --sy)
+        for (int x = 0, sx = MAX - 1; x < MAX; ++x, --sx)
+            rotateMap[DOWN][sy][sx] = map[y][x];
+
+    for (int y = 0, sx = 0; y < MAX; ++y, ++sx)
+        for (int x = 0, sy = MAX - 1; x < MAX; ++x, --sy)
+            rotateMap[RIGHT][sy][sx] = map[y][x];
 }
 
 void reuseMap(void)
@@ -527,18 +529,6 @@ void reuseMap(void)
             currDir = path[dest.y][dest.x];
             currY = dest.y;
             currX = dest.x;
-        }
-
-        for (int i = 0; i < MAX; i++)
-        {
-            for (int j = 0; j < MAX; j++)
-            {
-                if (compMap[i][j] == NEED_SCAN)
-                    std::cout << " ";
-                else
-                    std::cout << compMap[i][j];
-            }
-            std::cout << std::endl;
         }
 
         if (detectStatus(isFirst) == true)

@@ -38,6 +38,8 @@ static int robotX;
 static int robotDir;
  
 static long long SCORE = 0;
+
+bool debugFlag = false;
  
 void scan(int floorState[3][3])
 {
@@ -117,7 +119,7 @@ static bool run()
         isCleaned[robotY][robotX] = 1;
  
         cleanHouse();
- 
+      
         for (int y = 1; y < N - 1; ++y)
             for (int x = 1; x < N - 1; ++x)
                 if (houseInfo[y][x] == 0 && isCleaned[y][x] == 0) {
@@ -131,14 +133,18 @@ static bool run()
 int main()
 {
     setbuf(stdout, NULL);
-    //freopen("input.txt", "r", stdin);
+    freopen("input.txt", "r", stdin);
  
     for (int tc = 1; tc <= TC_COUNT; ++tc)
+    {
+        if (tc == 10) debugFlag = true; //debug
         if (run() == false)
         {
             printf("SCORE: %lld\n", PENALTY);
             return 0;
         }
+        printf("tc : %d\n", tc);
+    }
  
     printf("SCORE: %lld\n", SCORE);
  
@@ -146,19 +152,4 @@ int main()
     else puts("PASS");
  
     return 0;
-}
- 
-/// ***** user.cpp *****
-extern void scan(int floorState[3][3]);
-extern int move(void);
-extern void turn(int mCommand);
- 
-void init(void)
-{
- 
-}
- 
-void cleanHouse(void)
-{
- 
 }
