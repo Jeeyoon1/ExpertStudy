@@ -146,7 +146,7 @@ struct PriorityQueue
 #define INIT_POS 75
 #define VALID true
 #define INVALID false
-#define THRESHOLD 5
+#define THRESHOLD 1
 
 enum Dir { UP, LEFT, DOWN, RIGHT }; //4로 나눈 나머지 연산을 통해 방향 전환 후 진행방향을 알 수 있음
 enum Cost { SCAN = 20, TURN = 15, MOVE = 10 };
@@ -197,7 +197,7 @@ void initCompMap(void)
     cleaned[INIT_POS][INIT_POS] = true;
 }
 
-Coor pop(int src[][MAX])
+Coor pop(void)
 {
     cleaned[min_coor.y][min_coor.x] = true;
     --size;
@@ -307,7 +307,7 @@ bool inline isValidRange(int y, int x)
     return y >= 0 && y < MAX && x >= 0 && x < MAX;
 }
 
-bool isValid(Queue<Diff> q, int y, int x, int dir)
+bool isValid(Queue<Diff>& q, int y, int x, int dir)
 {
     int ny, nx;
     for (int idx = 0; idx < q.size(); idx++)
@@ -389,31 +389,7 @@ bool detectStatus(bool isFirst)
                 }
             }
         }
-
-        if (debugFlag)
-        {
-            for (int i = 81 - 10; i < 81 + 10; i++)
-            {
-                for (int j = 70 - 10; j < 70 + 10; j++)
-                {
-                    if (rotateMap[2][i][j] == NEED_SCAN)
-                        std::cout << " ";
-                    std::cout << rotateMap[2][i][j];
-                }
-                std::cout << std::endl;
-            }
-
-            for (int i = 73 - 10; i < 73 + 10; i++)
-            {
-                for (int j = 76 - 10; j < 76 + 10; j++)
-                {
-                    if (compMap[i][j] == NEED_SCAN)
-                        std::cout << " ";
-                    std::cout << compMap[i][j];
-                }
-                std::cout << std::endl;
-            }
-        }
+       
     }
     else
     {
@@ -429,20 +405,53 @@ bool detectStatus(bool isFirst)
             }
         }
     }
+
+    //if (debugFlag)
+    //{
+    //    for (int i = Y - 10; i < Y + 10; i++)
+    //    {
+    //        for (int j = X - 10; j < X + 10; j++)
+    //        {
+    //            /*if (compMap[i][j] == NEED_SCAN)
+    //                std::cout << " ";
+    //            else*/
+    //            std::cout << compMap[i][j];
+    //        }
+    //        std::cout << std::endl;
+    //    }
+
+    //    std::cout << std::endl;
+
+    //    for (int i = 81 - 10; i < 81 + 10; i++)
+    //    {
+    //        for (int j = 70 - 10; j < 70 + 10; j++)
+    //        {
+    //            /*if (rotateMap[2][i][j] == NEED_SCAN)
+    //                std::cout << " ";
+    //            else*/
+    //            std::cout << rotateMap[2][i][j];
+    //        }
+    //        std::cout << std::endl;
+    //    }
+
+    //    std::cout << std::endl;
+    //    std::cout << std::endl;
+    //    std::cout << std::endl;
+    //}
     
     if (cddQSize == 1)
     {
-        Candidate status;
+        Candidate ans;
         for (int idx = 0; idx < candidateQ.size(); idx++)
         {
             Candidate& now = candidateQ.data[idx];
             if (now.valid == VALID)
             {
-                status = now;
+                ans = now;
                 break;
             }
         }        
-        copyMap(rotateMap[status.dir], status.y, status.x);
+        copyMap(rotateMap[ans.dir], ans.y, ans.x);
         return true;
     }
     else
@@ -473,7 +482,7 @@ void makeMap(void)
 
         update(map);
 
-        dest = pop(map);
+        dest = pop();
 
         FollowPath(dest);
 
@@ -522,7 +531,7 @@ void reuseMap(void)
 
             update(compMap);
 
-            dest = pop(compMap);
+            dest = pop();
 
             FollowPath(dest);
 
@@ -541,7 +550,7 @@ void reuseMap(void)
     {
         update(compMap);
 
-        dest = pop(compMap);
+        dest = pop();
 
         FollowPath(dest);
 

@@ -137,7 +137,8 @@ int main()
  
     for (int tc = 1; tc <= TC_COUNT; ++tc)
     {
-        if (tc == 10) debugFlag = true; //debug
+        if (tc == 10) 
+            debugFlag = true; //debug
         if (run() == false)
         {
             printf("SCORE: %lld\n", PENALTY);
