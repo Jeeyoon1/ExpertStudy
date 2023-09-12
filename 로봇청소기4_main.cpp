@@ -39,8 +39,6 @@ static int robotDir;
  
 static long long SCORE = 0;
 
-bool debugFlag = false;
- 
 void scan(int floorState[3][3])
 {
     SCORE += SCAN_COST;
@@ -137,8 +135,6 @@ int main()
  
     for (int tc = 1; tc <= TC_COUNT; ++tc)
     {
-        if (tc == 10) 
-            debugFlag = true; //debug
         if (run() == false)
         {
             printf("SCORE: %lld\n", PENALTY);
