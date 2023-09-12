@@ -282,7 +282,7 @@ void update(int src[][MAX])
     }
 }
 
-void FollowPath(Coor now)
+void followPath(Coor now)
 {
     if (now.y == currY && now.x == currX)
         return;
@@ -291,7 +291,7 @@ void FollowPath(Coor now)
     int ny = now.y + dy[opDir];
     int nx = now.x + dx[opDir];
 
-    FollowPath({ ny, nx });
+    followPath({ ny, nx });
 
     int diffDir = (path[now.y][now.x] - path[ny][nx] + 4) % 4;
     if(diffDir != 0)
@@ -442,7 +442,7 @@ void makeMap(void)
 
         dest = pop();
 
-        FollowPath(dest);
+        followPath(dest);
 
         currDir = path[dest.y][dest.x];
         currY = dest.y;
@@ -491,7 +491,7 @@ void reuseMap(void)
 
             dest = pop();
 
-            FollowPath(dest);
+            followPath(dest);
 
             currDir = path[dest.y][dest.x];
             currY = dest.y;
@@ -510,7 +510,7 @@ void reuseMap(void)
 
         dest = pop();
 
-        FollowPath(dest);
+        followPath(dest);
 
         currDir = path[dest.y][dest.x];
         currY = dest.y;
